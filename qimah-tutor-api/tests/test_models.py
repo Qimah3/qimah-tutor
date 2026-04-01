@@ -115,6 +115,11 @@ def test_flashcard_invalid_card_type():
         make_flashcard(card_type="invalid_type")
 
 
+def test_flashcard_source_excerpt_too_short():
+    with pytest.raises(Exception):
+        make_flashcard(source_excerpt="tiny")  # 4 chars, must be > 10
+
+
 def test_flashcard_response_requires_3_distinct_types():
     """All same type → should fail validation"""
     cards = [

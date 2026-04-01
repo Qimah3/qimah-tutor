@@ -10,8 +10,8 @@ class QuestionSource(BaseModel):
 
     @model_validator(mode="after")
     def validate_excerpt_length(self):
-        if len(self.source_excerpt) < 10:
-            raise ValueError("source_excerpt must be at least 10 characters")
+        if len(self.source_excerpt) <= 10:
+            raise ValueError("source_excerpt must be more than 10 characters")
         return self
 
 
@@ -21,10 +21,10 @@ class Explanation(BaseModel):
 
     @model_validator(mode="after")
     def validate_lengths(self):
-        if len(self.why_correct) < 20:
-            raise ValueError("why_correct must be at least 20 characters")
-        if len(self.why_wrong) < 20:
-            raise ValueError("why_wrong must be at least 20 characters")
+        if len(self.why_correct) <= 20:
+            raise ValueError("why_correct must be more than 20 characters")
+        if len(self.why_wrong) <= 20:
+            raise ValueError("why_wrong must be more than 20 characters")
         return self
 
 
@@ -39,7 +39,7 @@ class QuizQuestion(BaseModel):
 
     @model_validator(mode="after")
     def validate_question(self):
-        if len(self.q) < 10:
+        if len(self.q) <= 10:
             raise ValueError("q must be at least 10 characters")
         if len(self.options) != 4:
             raise ValueError("options must have exactly 4 items")

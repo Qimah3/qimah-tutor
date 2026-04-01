@@ -11,6 +11,12 @@ class FlashcardSource(BaseModel):
     source_type: Literal["old_exam", "lecture_note", "handout", "screenshot"]
     source_excerpt: str
 
+    @model_validator(mode="after")
+    def validate_excerpt_length(self):
+        if len(self.source_excerpt) <= 10:
+            raise ValueError("source_excerpt must be more than 10 characters")
+        return self
+
 
 class Flashcard(BaseModel):
     card_type: Literal["definition", "contrast", "formula", "code", "mistake", "trap"]
