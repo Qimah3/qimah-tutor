@@ -40,7 +40,10 @@ class OpenAIRouter(LLMRouter):
             temperature=kwargs.get("temperature", self.temperature),
             max_tokens=kwargs.get("max_tokens", self.max_tokens),
         )
-        return response.choices[0].message.content
+        content = response.choices[0].message.content
+        if content is None:
+            raise RuntimeError("OpenAI returned an empty response")
+        return content
 
 
 class ClaudeRouter(LLMRouter):
@@ -73,9 +76,12 @@ class ClaudeRouter(LLMRouter):
         response = await client.messages.create(
             model=self.model,
             max_tokens=kwargs.get("max_tokens", self.max_tokens),
-            system=system,
+            temperature=kwargs.get("temperature", self.temperature),
+            system=system if system else "",
             messages=filtered,
         )
+        if not response.content:
+            raise RuntimeError("Claude returned an empty response")
         return response.content[0].text
 
 
