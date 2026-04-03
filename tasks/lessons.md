@@ -56,3 +56,11 @@ Patterns and mistakes to avoid repeating.
 **What happened:** Task 7 integration test referenced a `test drive/` folder that didn't exist in the repo (not in git, not gitignored — simply never committed). The test would have failed with a confusing `FileNotFoundError` instead of the expected `ImportError`.
 
 **Rule:** Before writing an integration test that reads files from disk, verify those fixture files actually exist with `ls` or `find`. If they don't exist, create synthetic ones immediately (using the same libraries the extractor uses: PyMuPDF for PDFs, python-docx for DOCX, PIL for images) so the test failure is always for the right reason.
+
+---
+
+## L007 — Remove unused imports before committing
+
+**What happened:** Task 8 (Drive client) initially had `import io` and `import json` left over from early drafting. The L001 post-implementation review caught them. No test failure — just dead code that would accumulate over time.
+
+**Rule:** After implementing, scan imports for any that are unused. Remove them before committing. If your editor doesn't flag unused imports, do a quick mental check: for each import, search the file for its usage.
