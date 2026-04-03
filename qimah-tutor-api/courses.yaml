@@ -1,0 +1,4 @@
+courses:
+  - course_id: 0
+    drive_folder_id: "placeholder"
+    name: "CS101 - Test"
