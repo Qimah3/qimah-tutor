@@ -16,3 +16,7 @@ def test_index_local_folder():
     assert "source_file" in meta
     assert "source_type" in meta
     assert "extraction_method" in meta
+    assert "page_number" in meta
+    assert "text_length" in meta
+    assert "ocr_confidence" in meta
+    assert "indexed_at" in meta

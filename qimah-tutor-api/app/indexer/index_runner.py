@@ -1,6 +1,9 @@
+import logging
 import os
 import uuid
 from datetime import datetime, timezone
+
+import chromadb
 
 from app.indexer.chunker import chunk_text
 from app.indexer.classifier import classify_source
@@ -8,8 +11,10 @@ from app.indexer.docx_extractor import extract_docx
 from app.indexer.ocr_extractor import extract_image
 from app.indexer.pdf_extractor import extract_pdf
 
+logger = logging.getLogger(__name__)
 
-def index_local_folder(folder_path: str, collection_name: str, client) -> object:
+
+def index_local_folder(folder_path: str, collection_name: str, client: chromadb.ClientAPI) -> chromadb.Collection:
     """Index all supported files in folder_path into a ChromaDB collection.
 
     Routes each file by extension:
@@ -42,7 +47,11 @@ def index_local_folder(folder_path: str, collection_name: str, client) -> object
         source_type = classify_source(filename)
 
         if ext == ".pdf":
-            segments = extract_pdf(filepath)
+            try:
+                segments = extract_pdf(filepath)
+            except Exception as exc:
+                logger.warning("Skipping %s: PDF extraction failed (%s)", filename, exc)
+                continue
             for seg in segments:
                 for chunk in chunk_text(seg["text"]):
                     if not chunk.strip():
@@ -63,7 +72,7 @@ def index_local_folder(folder_path: str, collection_name: str, client) -> object
             try:
                 result = extract_image(filepath)
             except Exception as exc:
-                print(f"[index_runner] Skipping {filename}: OCR failed ({exc})")
+                logger.warning("Skipping %s: OCR failed (%s)", filename, exc)
                 continue
             for chunk in chunk_text(result["text"]):
                 if not chunk.strip():
@@ -81,7 +90,11 @@ def index_local_folder(folder_path: str, collection_name: str, client) -> object
                 ids.append(str(uuid.uuid4()))
 
         elif ext == ".docx":
-            result = extract_docx(filepath)
+            try:
+                result = extract_docx(filepath)
+            except Exception as exc:
+                logger.warning("Skipping %s: DOCX extraction failed (%s)", filename, exc)
+                continue
             for chunk in chunk_text(result["text"]):
                 if not chunk.strip():
                     continue

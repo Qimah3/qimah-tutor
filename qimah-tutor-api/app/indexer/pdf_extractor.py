@@ -1,9 +1,12 @@
+import logging
 import os
 import tempfile
 
 import fitz  # PyMuPDF
 
 from app.indexer.ocr_extractor import extract_image
+
+logger = logging.getLogger(__name__)
 
 _SCANNED_PAGE_THRESHOLD = 50  # chars below which a page is treated as scanned
 
@@ -51,6 +54,8 @@ def extract_pdf(path: str, threshold: int = _SCANNED_PAGE_THRESHOLD) -> list[dic
                                 "method": "tesseract",
                                 "ocr_confidence": result["confidence"],
                             })
+                    except Exception as exc:
+                        logger.warning("OCR failed for image on page %d of %s: %s", page.number, path, exc)
                     finally:
                         os.unlink(tmp_path)
 
