@@ -5,7 +5,7 @@ from pydantic import BaseModel, model_validator
 class QuestionSource(BaseModel):
     source_file: str
     source_page: int
-    source_type: Literal["old_exam", "lecture_note", "handout", "screenshot"]
+    source_type: Literal["old_exam", "lecture_note", "handout", "screenshot", "lesson_content"]
     source_excerpt: str
 
     @model_validator(mode="after")

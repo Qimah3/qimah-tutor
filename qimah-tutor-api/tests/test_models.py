@@ -77,6 +77,11 @@ def test_source_excerpt_too_short():
         make_question(source=make_source(source_excerpt="tiny"))
 
 
+def test_question_source_accepts_lesson_content():
+    src = make_source(source_type="lesson_content")
+    assert src.source_type == "lesson_content"
+
+
 def test_must_have_exactly_4_options():
     with pytest.raises(Exception):
         make_question(options=["A", "B", "C"])  # only 3
@@ -118,6 +123,11 @@ def test_flashcard_invalid_card_type():
 def test_flashcard_source_excerpt_too_short():
     with pytest.raises(Exception):
         make_flashcard(source_excerpt="tiny")  # 4 chars, must be > 10
+
+
+def test_flashcard_source_accepts_lesson_content():
+    card = make_flashcard(source_type="lesson_content")
+    assert card.source.source_type == "lesson_content"
 
 
 def test_flashcard_response_requires_3_distinct_types():

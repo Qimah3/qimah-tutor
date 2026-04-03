@@ -23,7 +23,7 @@ def verify_request(
 
     Returns True only if:
     - timestamp is an integer within `window` seconds of now
-    - nonce has not been seen before (within the cache window)
+    - nonce is present and has not been seen before (within the cache window)
     - signature matches the expected value
     """
     # 1. Validate and parse timestamp
@@ -34,27 +34,35 @@ def verify_request(
     if abs(time.time() - ts) > window:
         return False
 
-    # 2. Prune expired nonces (older than window)
+    # 2. Reject missing nonce values so integrations cannot silently disable
+    # replay protection by signing with an empty nonce.
+    if not nonce:
+        return False
+
+    # 3. Prune expired nonces (older than window)
     cutoff = time.time() - window
     expired = [k for k, v in _seen_nonces.items() if v < cutoff]
     for k in expired:
         del _seen_nonces[k]
 
-    # 3. Reject replayed nonces
-    if nonce in _seen_nonces:
-        return False
-
-    # 4. Record nonce (do this before signature check so replay is still blocked
-    #    even if someone submits the same nonce with a bad signature)
-    _seen_nonces[nonce] = ts
-    while len(_seen_nonces) > _MAX_NONCES:
-        _seen_nonces.popitem(last=False)
-
-    # 5. Verify signature
+    # 4. Verify signature before touching the nonce cache so malformed requests
+    # cannot burn valid nonces or evict real entries from the replay window.
     body_hash = hashlib.sha256(body).hexdigest()
     expected = hmac.new(
         secret.encode(),
         (timestamp + nonce + body_hash).encode(),
         hashlib.sha256,
     ).hexdigest()
-    return hmac.compare_digest(signature, expected)
+    if not hmac.compare_digest(signature, expected):
+        return False
+
+    # 5. Reject replayed nonces after authentication succeeds.
+    if nonce in _seen_nonces:
+        return False
+
+    # 6. Record the authenticated nonce.
+    _seen_nonces[nonce] = ts
+    while len(_seen_nonces) > _MAX_NONCES:
+        _seen_nonces.popitem(last=False)
+
+    return True

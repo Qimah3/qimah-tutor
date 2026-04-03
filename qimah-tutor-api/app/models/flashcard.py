@@ -8,7 +8,7 @@ VALID_CARD_TYPES = {"definition", "contrast", "formula", "code", "mistake", "tra
 class FlashcardSource(BaseModel):
     source_file: str
     source_page: int
-    source_type: Literal["old_exam", "lecture_note", "handout", "screenshot"]
+    source_type: Literal["old_exam", "lecture_note", "handout", "screenshot", "lesson_content"]
     source_excerpt: str
 
     @model_validator(mode="after")
