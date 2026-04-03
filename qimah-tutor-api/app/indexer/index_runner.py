@@ -30,6 +30,9 @@ def index_local_folder(folder_path: str, collection_name: str, client) -> object
     metadatas: list[dict] = []
     ids: list[str] = []
 
+    if not os.path.isdir(folder_path):
+        raise ValueError(f"index_local_folder: path does not exist or is not a directory: {folder_path!r}")
+
     for filename in sorted(os.listdir(folder_path)):
         filepath = os.path.join(folder_path, filename)
         if not os.path.isfile(filepath):
