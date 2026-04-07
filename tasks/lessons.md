@@ -40,3 +40,27 @@ Patterns and mistakes to avoid repeating.
 **What happened:** Task 2 added `source_excerpt` length validator to `QuestionSource` but forgot to add the same validator to `FlashcardSource`.
 
 **Rule:** When two models share the same field with the same semantic meaning, apply the same validators to both. Check symmetry during implementation.
+
+---
+
+## L005 — Wrap external process calls in orchestrators with try/except
+
+**What happened:** Task 7 (index runner) called `extract_image()` directly. `extract_image()` calls Tesseract via subprocess. When Tesseract is not installed, this crashes the entire indexing job with `TesseractNotFoundError` — skipping all remaining files.
+
+**Rule:** In any orchestrator that loops over files/items, wrap each extraction call in `try/except Exception` and log + continue. One bad file should never abort the whole job. This applies to: OCR calls, Drive API downloads, PDF parsing — anything that touches the filesystem or an external process.
+
+---
+
+## L006 — Verify test fixture files exist before writing integration tests
+
+**What happened:** Task 7 integration test referenced a `test drive/` folder that didn't exist in the repo (not in git, not gitignored — simply never committed). The test would have failed with a confusing `FileNotFoundError` instead of the expected `ImportError`.
+
+**Rule:** Before writing an integration test that reads files from disk, verify those fixture files actually exist with `ls` or `find`. If they don't exist, create synthetic ones immediately (using the same libraries the extractor uses: PyMuPDF for PDFs, python-docx for DOCX, PIL for images) so the test failure is always for the right reason.
+
+---
+
+## L007 — Remove unused imports before committing
+
+**What happened:** Task 8 (Drive client) initially had `import io` and `import json` left over from early drafting. The L001 post-implementation review caught them. No test failure — just dead code that would accumulate over time.
+
+**Rule:** After implementing, scan imports for any that are unused. Remove them before committing. If your editor doesn't flag unused imports, do a quick mental check: for each import, search the file for its usage.
