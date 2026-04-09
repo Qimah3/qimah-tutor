@@ -64,3 +64,23 @@ Patterns and mistakes to avoid repeating.
 **What happened:** Task 8 (Drive client) initially had `import io` and `import json` left over from early drafting. The L001 post-implementation review caught them. No test failure — just dead code that would accumulate over time.
 
 **Rule:** After implementing, scan imports for any that are unused. Remove them before committing. If your editor doesn't flag unused imports, do a quick mental check: for each import, search the file for its usage.
+
+---
+
+## L008 — Normalise heterogeneous extractor returns behind a helper
+
+**What happened:** Task 13 (index endpoint) needed to call three extractors with different return shapes: `extract_pdf` returns `list[dict]`, `extract_docx` returns `dict`, `extract_image` returns `dict`. Inlining the routing + normalisation in the endpoint handler would have made the loop body ~40 lines of branching.
+
+**Why it matters:** When you mix extraction routing with HTTP/auth/chunking/upsert logic, the endpoint becomes hard to read and easy to break when adding a new file type.
+
+**Rule:** When multiple functions return structurally different results that feed into the same downstream pipeline, create a thin `_extract(path, ext) -> list[dict]` helper that normalises them. Keep the main loop clean: download → extract → chunk → upsert. Each step is one line.
+
+---
+
+## L009 — download_file returning False vs raising: handle both
+
+**What happened:** Task 13's `DriveClient.download_file()` catches exceptions internally and returns `False` (never raises). But the endpoint's per-item error handling uses `try/except`. If you only check the exception path, a silent `False` return would be treated as success.
+
+**Why it matters:** External client methods that swallow exceptions and return a status bool are a common pattern. If the caller only has try/except, the "soft failure" case silently proceeds with a missing/empty file.
+
+**Rule:** When calling a method that can fail both by raising *and* by returning a falsy status, check both: wrap in try/except AND check the return value. Pattern: `ok = client.do_thing(); if not ok: raise RuntimeError("...")` inside the try block.
