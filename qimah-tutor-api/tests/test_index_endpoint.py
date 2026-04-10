@@ -159,6 +159,47 @@ def test_index_skips_failed_download():
     assert mock_collection.upsert.call_count == 1
 
 
+def test_index_resolves_folder_from_courses():
+    """POST with no drive_folder_id, lookup_folder returns a folder -> 200."""
+    files = [{"id": "docx1", "name": "lecture_notes.docx"}]
+    drive_cls = _mock_drive_class(files)
+    mock_collection = MagicMock()
+    docx_result = {"text": "D" * 100}
+
+    body = {"course_id": 1, "topic_id": 10}
+    body_bytes, headers = _sign_request(body)
+
+    with (
+        patch("app.routers.index.DriveClient", drive_cls),
+        patch("app.routers.index.get_collection", return_value=mock_collection),
+        patch("app.routers.index.extract_docx", return_value=docx_result),
+        patch("app.routers.index.lookup_folder", return_value="resolved_folder_abc"),
+        patch.dict(os.environ, {"HMAC_SECRET": SECRET}),
+    ):
+        resp = client.post("/index", content=body_bytes, headers=headers)
+
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["indexed"] == 1
+    # Drive was called with the resolved folder
+    drive_cls.return_value.list_files.assert_called_once_with("resolved_folder_abc")
+
+
+def test_index_unknown_folder_404():
+    """POST with no drive_folder_id, lookup returns None -> 404."""
+    body = {"course_id": 999, "topic_id": 999}
+    body_bytes, headers = _sign_request(body)
+
+    with (
+        patch("app.routers.index.lookup_folder", return_value=None),
+        patch.dict(os.environ, {"HMAC_SECRET": SECRET}),
+    ):
+        resp = client.post("/index", content=body_bytes, headers=headers)
+
+    assert resp.status_code == 404
+    assert "No Drive folder mapped" in resp.json()["detail"]
+
+
 def test_index_empty_folder():
     """Drive returns empty list -> 200, indexed==0, skipped==0."""
     drive_cls = _mock_drive_class([])

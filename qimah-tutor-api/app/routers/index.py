@@ -11,6 +11,7 @@ from pydantic import BaseModel
 
 from app.auth import verify_request
 from app.config import get_config
+from app.courses import lookup_folder
 from app.indexer.chunker import chunk_text
 from app.indexer.classifier import classify_source
 from app.indexer.docx_extractor import extract_docx
@@ -27,7 +28,7 @@ router = APIRouter()
 class IndexRequest(BaseModel):
     course_id: int
     topic_id: int
-    drive_folder_id: str
+    drive_folder_id: str | None = None
 
 
 _EXT_PDF = ".pdf"
@@ -55,12 +56,22 @@ async def index_course(request: Request):
     # --- 2. Parse request ---
     body = IndexRequest.model_validate_json(raw_body)
 
+    # --- 2b. Resolve Drive folder (from request or courses.yaml) ---
+    folder_id = body.drive_folder_id
+    if not folder_id:
+        folder_id = lookup_folder(body.course_id, body.topic_id)
+        if not folder_id:
+            raise HTTPException(
+                status_code=404,
+                detail="No Drive folder mapped for this course/topic",
+            )
+
     # --- 3. List Drive files (L005: wrap in try/except → 500) ---
     drive = DriveClient()
     try:
-        files = drive.list_files(body.drive_folder_id)
+        files = drive.list_files(folder_id)
     except Exception as exc:
-        logger.error("Drive list_files failed for folder %s: %s", body.drive_folder_id, exc)
+        logger.error("Drive list_files failed for folder %s: %s", folder_id, exc)
         raise HTTPException(status_code=500, detail="Failed to list Drive folder")
 
     # --- 4. Prepare collection + indexer config ---
